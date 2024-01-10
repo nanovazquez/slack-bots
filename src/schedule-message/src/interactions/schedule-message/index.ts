@@ -4,6 +4,7 @@ import {
   buildDatetimePickerBlock,
   buildPlainTextInputBlock,
   buildMultiConversationsSelectBlock,
+  getFieldValueFromView,
 } from "~/messageBlocksUtils";
 import type {
   SlackCommandListener,
@@ -73,10 +74,33 @@ function buildScheduleMessageModal(userId: string, messageToSchedule: string): V
 const viewListener: SlackViewListener = async ({ ack, body, client, view, context }) => {
   await ack();
 
-  console.log(body);
-  console.log(context);
-  console.log(view);
-  console.log(view.state);
+  const messageValues = {
+    message: getFieldValueFromView("message", view),
+    conversations: getFieldValueFromView("conversations", view),
+    date: getFieldValueFromView("date", view),
+    repeat: getFieldValueFromView("repeat", view),
+  };
+
+  console.log(messageValues);
+
+  // Schedule the message based on the values received
+  const scheduledMessage = await client.chat.scheduleMessage({
+    channel: messageValues.conversations[0],
+    text: messageValues.message,
+    post_at: messageValues.date,
+    as_user: true,
+  });
+
+  // Notify the user that the message was scheduled
+  console.log(scheduledMessage);
+  console.log(
+    `Message for user ${body.user.name} was scheduled for ${scheduledMessage.post_at} with the id ${scheduledMessage.scheduled_message_id}`,
+  );
+  await client.chat.postMessage({
+    channel: messageValues.conversations[0],
+    text: `Your message was scheduled for ${scheduledMessage.post_at} with the id ${scheduledMessage.scheduled_message_id}`,
+    thread_ts: scheduledMessage.scheduled_message_id,
+  });
 };
 
 const scheduleMessageInteraction: SlackInteraction = {

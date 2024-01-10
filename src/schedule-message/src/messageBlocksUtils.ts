@@ -68,13 +68,10 @@ function buildInputBlock(
     | RichTextInput,
   optional?: boolean,
 ): InputBlock {
-  // By default, only checkboxes are optional
-  const isOptional = optional || element.type === "checkboxes";
-
   return {
     type: "input",
-    element: element,
-    optional: isOptional,
+    element,
+    optional: !!optional,
     label: {
       type: "plain_text",
       text: title,
@@ -238,16 +235,16 @@ function buildSameBlocksWithMessage(body: SlackAction, message: string): KnownBl
   return [...currentBlocks, buildSectionBlockWithLabel(message, "messageBlock")];
 }
 
-function getFieldValueFromActionBody<T = string>(fieldId: string, body: ViewOutput): T {
-  for (const key in body.state.values) {
+function getFieldValueFromView<T = string>(fieldId: string, view: ViewOutput): T {
+  for (const key in view.state.values) {
     const value =
-      body.state.values[key][fieldId] &&
-      (body.state.values[key][fieldId].value ||
-        body.state.values[key][fieldId].selected_user ||
-        body.state.values[key][fieldId].selected_users ||
-        body.state.values[key][fieldId].selected_date ||
-        body.state.values[key][fieldId].selected_time ||
-        body.state.values[key][fieldId].selected_option?.value);
+      view.state.values[key][fieldId] &&
+      (view.state.values[key][fieldId].value ||
+        view.state.values[key][fieldId].selected_user ||
+        view.state.values[key][fieldId].selected_users ||
+        view.state.values[key][fieldId].selected_date ||
+        view.state.values[key][fieldId].selected_time ||
+        view.state.values[key][fieldId].selected_option?.value);
 
     if (value) {
       return value as unknown as T;
@@ -260,9 +257,11 @@ function getFieldValueFromActionBody<T = string>(fieldId: string, body: ViewOutp
 function getFieldValueFromButton<T = string>(fieldId: string, body: BlockAction): T {
   const actions: BlockElementAction[] = body.actions;
   const value = (actions.find((action) => action.action_id === fieldId) as ButtonAction).value;
+
   if (value) {
     return value as unknown as T;
   }
+
   return "" as unknown as T;
 }
 
@@ -280,6 +279,6 @@ export {
   buildMultiConversationsSelectBlock,
   buildButtonsBlock,
   buildSameBlocksWithMessage,
-  getFieldValueFromActionBody,
+  getFieldValueFromView,
   getFieldValueFromButton,
 };
