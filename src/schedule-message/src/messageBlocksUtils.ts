@@ -66,10 +66,15 @@ function buildInputBlock(
     | RadioButtons
     | Checkboxes
     | RichTextInput,
+  optional?: boolean,
 ): InputBlock {
+  // By default, only checkboxes are optional
+  const isOptional = optional || element.type === "checkboxes";
+
   return {
     type: "input",
     element: element,
+    optional: isOptional,
     label: {
       type: "plain_text",
       text: title,
