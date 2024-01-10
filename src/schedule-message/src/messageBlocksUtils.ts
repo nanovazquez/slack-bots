@@ -6,11 +6,28 @@ import type {
   InputBlock,
   KnownBlock,
   MrkdwnElement,
-  Option,
+  UsersSelect,
+  MultiUsersSelect,
   PlainTextOption,
   SectionBlock,
   SlackAction,
   ViewOutput,
+  ConversationsSelect,
+  MultiConversationsSelect,
+  DateTimepicker,
+  StaticSelect,
+  Checkboxes,
+  Datepicker,
+  EmailInput,
+  MultiSelect,
+  NumberInput,
+  PlainTextInput,
+  RadioButtons,
+  RichTextInput,
+  Select,
+  Timepicker,
+  URLInput,
+  Button,
 } from "@slack/bolt";
 
 function buildSectionBlockWithLabel(text: string, fieldId = ""): SectionBlock {
@@ -24,208 +41,175 @@ function buildSectionBlockWithLabel(text: string, fieldId = ""): SectionBlock {
   };
 }
 
-function buildSectionBlockWithFields(...fieldsText: string[]): SectionBlock {
+function buildSectionBlockWithLabels(...labelsText: string[]): SectionBlock {
   return {
     type: "section",
-    fields: fieldsText.map((item) => ({
+    fields: labelsText.map((item) => ({
       type: "mrkdwn",
       text: item,
     })),
   };
 }
 
-function buildTextInputBlock(
-  fieldId: string,
+function buildInputBlock(
   title: string,
+  element:
+    | Select
+    | MultiSelect
+    | Datepicker
+    | Timepicker
+    | DateTimepicker
+    | PlainTextInput
+    | URLInput
+    | EmailInput
+    | NumberInput
+    | RadioButtons
+    | Checkboxes
+    | RichTextInput,
+): InputBlock {
+  return {
+    type: "input",
+    element: element,
+    label: {
+      type: "plain_text",
+      text: title,
+      emoji: true,
+    },
+  };
+}
+
+function buildPlainTextInputBlock(
+  title: string,
+  fieldId: string,
   multiline = false,
   value?: string,
-  placeholder_text?: string,
 ): InputBlock {
-  return {
-    type: "input",
-    block_id: fieldId,
-    element: {
-      type: "plain_text_input",
-      multiline: multiline,
-      action_id: fieldId,
-      initial_value: value,
-      placeholder: {
-        type: "plain_text",
-        text: placeholder_text ? placeholder_text : "Agregar un texto",
-        emoji: true,
-      },
-      min_length: 1,
-    },
-    label: {
-      type: "plain_text",
-      text: title,
-      emoji: true,
-    },
+  const element: PlainTextInput = {
+    type: "plain_text_input",
+    multiline: multiline,
+    action_id: fieldId,
+    initial_value: value,
+    min_length: 1,
   };
+
+  return buildInputBlock(title, element);
 }
 
-function buildDatePicker(
-  fieldId: string,
-  title: string,
-  value?: string,
-  placeholder_text?: string,
-): InputBlock {
-  return {
-    type: "input",
-    block_id: fieldId,
-    element: {
-      type: "datepicker",
-      placeholder: {
-        type: "plain_text",
-        text: placeholder_text ? placeholder_text : "Elegir una fecha de envío del mensaje",
-        emoji: true,
+function buildCheckboxBlock(title: string, text: string, fieldId: string): InputBlock {
+  const element: Checkboxes = {
+    type: "checkboxes",
+    action_id: fieldId,
+    options: [
+      {
+        text: {
+          type: "plain_text",
+          text: text,
+          emoji: true,
+        },
+        value: fieldId,
       },
-      action_id: fieldId,
-      initial_date: value,
-    },
-    label: {
-      type: "plain_text",
-      text: title,
-      emoji: true,
-    },
+    ],
   };
+
+  return buildInputBlock(title, element);
 }
 
-function buildTimePicker(
-  fieldId: string,
-  title: string,
-  value?: string,
-  placeholder_text?: string,
-): InputBlock {
-  return {
-    type: "input",
-    block_id: fieldId,
-    element: {
-      type: "timepicker",
-      placeholder: {
-        type: "plain_text",
-        text: placeholder_text ? placeholder_text : "Elegir una hora de envío del mensaje",
-        emoji: true,
-      },
-      action_id: fieldId,
-      initial_time: value,
-    },
-    label: {
-      type: "plain_text",
-      text: title,
-      emoji: true,
-    },
+function buildDatetimePickerBlock(title: string, fieldId: string, value?: number): InputBlock {
+  const element: DateTimepicker = {
+    type: "datetimepicker",
+    action_id: fieldId,
+    initial_date_time: value,
   };
+
+  return buildInputBlock(title, element);
 }
 
 function buildStaticSelectBlock(
-  fieldId: string,
   title: string,
-  optionValues: { text: string; value: string }[],
-  selectedOptionValue?: string,
-  placeholder?: string,
+  fieldId: string,
+  values: { text: string; value: string }[],
+  selectedValue?: string,
 ): InputBlock {
-  const options: Option[] = optionValues.map((optionValue) => ({
-    text: {
-      type: "plain_text",
-      text: optionValue.text,
-    },
-    value: optionValue.value,
+  const options: PlainTextOption[] = values.map((item) => ({
+    text: { type: "plain_text", text: item.text },
+    value: item.value,
   }));
-  const selectedOption = options.find((option) => option.value === selectedOptionValue);
+  const selectedOption = options.find((option) => option.value === selectedValue);
 
-  return {
-    type: "input",
-    block_id: fieldId,
-    element: {
-      type: "static_select",
-      placeholder: {
-        type: "plain_text",
-        text: placeholder || "",
-        emoji: true,
-      },
-      options: options as PlainTextOption[],
-      initial_option: selectedOption as PlainTextOption,
-      action_id: fieldId,
-    },
-    label: {
-      type: "plain_text",
-      text: title,
-      emoji: true,
-    },
+  const element: StaticSelect = {
+    type: "static_select",
+    action_id: fieldId,
+    options: options,
+    initial_option: selectedOption,
   };
+
+  return buildInputBlock(title, element);
 }
 
-function buildUserSelectBlock(
-  fieldId: string,
-  title: string,
-  value?: string,
-  placeholder?: string,
-): InputBlock {
-  return {
-    type: "input",
-    block_id: fieldId,
-    element: {
-      type: "users_select",
-      placeholder: {
-        type: "plain_text",
-        text: placeholder || "Seleccioná un usuario",
-        emoji: true,
-      },
-      action_id: fieldId,
-      initial_user: value || "-1",
-    },
-    label: {
-      type: "plain_text",
-      text: title,
-      emoji: true,
-    },
+function buildUsersSelectBlock(title: string, fieldId: string, value?: string): InputBlock {
+  const element: UsersSelect = {
+    type: "users_select",
+    action_id: fieldId,
+    initial_user: value,
   };
+
+  return buildInputBlock(title, element);
 }
 
-function buildMultiUsersSelect(
-  fieldId: string,
-  title: string,
-  value: string[] = [],
-  placeholder_text?: string,
-): InputBlock {
-  return {
-    type: "input",
-    block_id: fieldId,
-    element: {
-      type: "multi_users_select",
-      placeholder: {
-        type: "plain_text",
-        text: placeholder_text ? placeholder_text : "Agregar a los usuarios",
-        emoji: true,
-      },
-      action_id: fieldId,
-      initial_users: value,
-    },
-    label: {
-      type: "plain_text",
-      text: title,
-      emoji: true,
-    },
+function buildMultiUsersSelectBlock(title: string, fieldId: string, value?: string[]): InputBlock {
+  const element: MultiUsersSelect = {
+    type: "multi_users_select",
+    action_id: fieldId,
+    initial_users: value,
   };
+
+  return buildInputBlock(title, element);
+}
+
+function buildConversationsSelectBlock(title: string, fieldId: string, value?: string): InputBlock {
+  const element: ConversationsSelect = {
+    type: "conversations_select",
+    action_id: fieldId,
+    default_to_current_conversation: true,
+    initial_conversation: value,
+  };
+
+  return buildInputBlock(title, element);
+}
+
+function buildMultiConversationsSelectBlock(
+  title: string,
+  fieldId: string,
+  value?: string[],
+): InputBlock {
+  const element: MultiConversationsSelect = {
+    type: "multi_conversations_select",
+    action_id: fieldId,
+    default_to_current_conversation: true,
+    initial_conversations: value,
+  };
+
+  return buildInputBlock(title, element);
 }
 
 function buildButtonsBlock(
-  buttonsInfo: { fieldId: string; text: string; style?: string; value?: string }[],
+  buttonsInfo: { fieldId: string; text: string; style?: "danger" | "primary"; value?: string }[],
 ): ActionsBlock {
+  const elements: Button[] = buttonsInfo.map((info) => ({
+    type: "button",
+    text: {
+      type: "plain_text",
+      emoji: true,
+      text: info.text,
+    },
+    style: info.style,
+    action_id: info.fieldId,
+    value: info.value,
+  }));
+
   return {
     type: "actions",
-    elements: buttonsInfo.map((info) => ({
-      type: "button",
-      text: {
-        type: "plain_text",
-        emoji: true,
-        text: info.text,
-      },
-      style: info.style,
-      action_id: info.fieldId,
-      value: info.value,
-    })),
+    elements: elements,
   };
 }
 
@@ -279,14 +263,17 @@ function getFieldValueFromButton<T = string>(fieldId: string, body: BlockAction)
 
 export {
   buildSectionBlockWithLabel,
-  buildSectionBlockWithFields,
-  buildTextInputBlock,
+  buildSectionBlockWithLabels,
+  buildInputBlock,
+  buildPlainTextInputBlock,
+  buildCheckboxBlock,
+  buildDatetimePickerBlock,
   buildStaticSelectBlock,
-  buildUserSelectBlock,
-  buildMultiUsersSelect,
+  buildUsersSelectBlock,
+  buildMultiUsersSelectBlock,
+  buildConversationsSelectBlock,
+  buildMultiConversationsSelectBlock,
   buildButtonsBlock,
-  buildDatePicker,
-  buildTimePicker,
   buildSameBlocksWithMessage,
   getFieldValueFromActionBody,
   getFieldValueFromButton,

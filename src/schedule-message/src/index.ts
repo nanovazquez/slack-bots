@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { App, LogLevel, MemoryStore } from "@slack/bolt";
-import commands from "./commands";
-import type { SlackMessageCommand } from "./types";
+import interactions from "./interactions";
+import type { SlackInteraction } from "./types";
 
 const app = new App({
   token: process.env.SLACK_BOT_TOKEN,
@@ -12,25 +12,43 @@ const app = new App({
   logLevel: process.env.DEBUG === "true" ? LogLevel.DEBUG : LogLevel.INFO,
 });
 
-Object.keys(commands as Record<string, SlackMessageCommand>).forEach((key) => {
-  const command: SlackMessageCommand = (commands as Record<string, SlackMessageCommand>)[key];
+console.log();
 
-  console.log(`Setting up command '${command.name}' with pattern ${command.pattern}`);
-  app.message(command.pattern, command.listener);
+Object.keys(interactions).forEach((key: string) => {
+  const interaction = (interactions as Record<string, SlackInteraction>)[key];
 
-  if (command.actions) {
-    command.actions.forEach((action) => {
-      console.log(`Setting up action '${action.id}' for command '${command.name}'`);
+  console.log(`Setting up interaction '${interaction.name}'..`);
+
+  if (interaction.messages) {
+    interaction.messages.forEach((message) => {
+      console.log(`Setting up listener for message pattern '${message.pattern}'`);
+      app.message(message.pattern, message.listener);
+    });
+  }
+
+  if (interaction.shortcuts) {
+    interaction.shortcuts.forEach((shortcut) => {
+      console.log(`Setting up listener for shortcut '${shortcut.id}'`);
+      app.command(shortcut.id, shortcut.listener);
+    });
+  }
+
+  if (interaction.actions) {
+    interaction.actions.forEach((action) => {
+      console.log(`Setting up listener for action '${action.id}'`);
       app.action(action.id, action.listener);
     });
   }
 
-  if (command.views) {
-    command.views.forEach((view) => {
-      console.log(`Setting up view '${view.id}' for command '${command.name}'`);
+  if (interaction.views) {
+    interaction.views.forEach((view) => {
+      console.log(`Setting up listener for view '${view.id}'`);
       app.view(view.id, view.listener);
     });
   }
+
+  console.log(`Setting up interaction '${interaction.name}' done!`);
+  console.log();
 });
 
 (async () => {

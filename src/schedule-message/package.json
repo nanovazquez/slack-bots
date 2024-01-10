@@ -10,6 +10,9 @@
     "test": "jest",
     "test:dev": "jest --watch"
   },
+  "engines": {
+    "node": ">=16.0.0"
+  },
   "author": "nanovazquez",
   "license": "MIT",
   "devDependencies": {

@@ -2,22 +2,34 @@ import {
   Middleware,
   SlackAction,
   SlackActionMiddlewareArgs,
+  SlackCommandMiddlewareArgs,
   SlackEventMiddlewareArgs,
   SlackViewAction,
   SlackViewMiddlewareArgs,
 } from "@slack/bolt";
 
-export interface SlackMessageCommand {
-  pattern: RegExp;
+export type SlackMessageListener = Middleware<SlackEventMiddlewareArgs<"message">>;
+export type SlackCommandListener = Middleware<SlackCommandMiddlewareArgs>;
+export type SlackActionListener = Middleware<SlackActionMiddlewareArgs<SlackAction>>;
+export type SlackViewListener = Middleware<SlackViewMiddlewareArgs<SlackViewAction>>;
+
+export type SlackInteraction = {
   name: string;
   description: string;
-  listener: Middleware<SlackEventMiddlewareArgs<"message">>;
+  messages?: {
+    pattern: RegExp;
+    listener: SlackMessageListener;
+  }[];
+  shortcuts?: {
+    id: string;
+    listener: SlackCommandListener;
+  }[];
   actions?: {
     id: string;
-    listener: Middleware<SlackActionMiddlewareArgs<SlackAction>>;
+    listener: SlackActionListener;
   }[];
   views?: {
     id: string;
-    listener: Middleware<SlackViewMiddlewareArgs<SlackViewAction>>;
+    listener: SlackViewListener;
   }[];
-}
+};
