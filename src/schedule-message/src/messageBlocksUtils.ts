@@ -28,6 +28,7 @@ import type {
   Timepicker,
   URLInput,
   Button,
+  Option,
 } from "@slack/bolt";
 
 function buildSectionBlockWithLabel(text: string, fieldId = ""): SectionBlock {
@@ -97,20 +98,55 @@ function buildPlainTextInputBlock(
   return buildInputBlock(title, element);
 }
 
-function buildCheckboxBlock(title: string, text: string, fieldId: string): InputBlock {
+function buildCheckboxBlock(
+  title: string,
+  fieldId: string,
+  options: { text: string; value: string }[],
+): InputBlock {
   const element: Checkboxes = {
     type: "checkboxes",
     action_id: fieldId,
-    options: [
-      {
-        text: {
-          type: "plain_text",
-          text: text,
-          emoji: true,
-        },
-        value: fieldId,
+    options: options.map((item) => ({
+      text: {
+        type: "plain_text",
+        text: item.text,
+        emoji: true,
       },
-    ],
+      value: item.value,
+    })),
+  };
+
+  return buildInputBlock(title, element);
+}
+
+function buildRadioButtonsBlock(
+  title: string,
+  fieldId: string,
+  options: { text: string; value: string; selected?: boolean }[],
+): InputBlock {
+  let selectedRadioButtonOption: Option | undefined = undefined;
+  const radioButtonOptions: Option[] = options.map((item) => {
+    const radioButtonOption: Option = {
+      text: {
+        type: "plain_text",
+        text: item.text,
+        emoji: true,
+      },
+      value: item.value,
+    };
+
+    if (item.selected) {
+      selectedRadioButtonOption = radioButtonOption;
+    }
+
+    return radioButtonOption;
+  });
+
+  const element: RadioButtons = {
+    type: "radio_buttons",
+    action_id: fieldId,
+    initial_option: selectedRadioButtonOption || radioButtonOptions[0],
+    options: radioButtonOptions,
   };
 
   return buildInputBlock(title, element);
@@ -271,6 +307,7 @@ export {
   buildInputBlock,
   buildPlainTextInputBlock,
   buildCheckboxBlock,
+  buildRadioButtonsBlock,
   buildDatetimePickerBlock,
   buildStaticSelectBlock,
   buildUsersSelectBlock,

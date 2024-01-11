@@ -5,6 +5,7 @@ import {
   buildPlainTextInputBlock,
   buildMultiConversationsSelectBlock,
   getFieldValueFromView,
+  buildRadioButtonsBlock,
 } from "~/messageBlocksUtils";
 import type {
   SlackCommandListener,
@@ -66,7 +67,14 @@ function buildScheduleMessageModal(userId: string, messageToSchedule: string): V
       buildPlainTextInputBlock("Write your message", "message", true, messageToSchedule),
       buildMultiConversationsSelectBlock("Conversation", "conversations", [userId]),
       buildDatetimePickerBlock("Date", "date"),
-      buildCheckboxBlock("Repeat message", "Repeat", "repeat"),
+      buildRadioButtonsBlock("Repeat message", "repeat", [
+        { text: "Do not repeat", value: "never", selected: true },
+        { text: "Daily", value: "daily" },
+        { text: "Weekly", value: "weekly" },
+        { text: "Monthly", value: "monthly" },
+        { text: "Every weekday (Monday to Friday)", value: "weekday" },
+        // { text: "Custom", value: "custom" },
+      ]),
     ],
   };
 }
@@ -80,6 +88,8 @@ const viewListener: SlackViewListener = async ({ ack, body, client, view, contex
     date: getFieldValueFromView("date", view),
     repeat: getFieldValueFromView("repeat", view),
   };
+
+  // Send a message to the user that the message is being scheduled
 
   console.log(messageValues);
 
