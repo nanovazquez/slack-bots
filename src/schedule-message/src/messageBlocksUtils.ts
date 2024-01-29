@@ -67,12 +67,20 @@ function buildInputBlock(
     | RadioButtons
     | Checkboxes
     | RichTextInput,
+  hint?: string,
   optional?: boolean,
 ): InputBlock {
   return {
     type: "input",
     element,
     optional: !!optional,
+    hint: hint
+      ? {
+          type: "plain_text",
+          text: hint,
+          emoji: true,
+        }
+      : undefined,
     label: {
       type: "plain_text",
       text: title,
@@ -86,6 +94,7 @@ function buildPlainTextInputBlock(
   fieldId: string,
   multiline = false,
   value?: string,
+  hint?: string,
 ): InputBlock {
   const element: PlainTextInput = {
     type: "plain_text_input",
@@ -95,7 +104,7 @@ function buildPlainTextInputBlock(
     min_length: 1,
   };
 
-  return buildInputBlock(title, element);
+  return buildInputBlock(title, element, hint);
 }
 
 function buildCheckboxBlock(
@@ -152,7 +161,12 @@ function buildRadioButtonsBlock(
   return buildInputBlock(title, element);
 }
 
-function buildDatetimePickerBlock(title: string, fieldId: string, value?: number): InputBlock {
+function buildDatetimePickerBlock(
+  title: string,
+  fieldId: string,
+  value?: number,
+  hint?: string,
+): InputBlock {
   const element: DateTimepicker = {
     type: "datetimepicker",
     action_id: fieldId,
@@ -204,7 +218,12 @@ function buildMultiUsersSelectBlock(title: string, fieldId: string, value?: stri
   return buildInputBlock(title, element);
 }
 
-function buildConversationsSelectBlock(title: string, fieldId: string, value?: string): InputBlock {
+function buildConversationsSelectBlock(
+  title: string,
+  fieldId: string,
+  value?: string,
+  hint?: string,
+): InputBlock {
   const element: ConversationsSelect = {
     type: "conversations_select",
     action_id: fieldId,
@@ -212,7 +231,7 @@ function buildConversationsSelectBlock(title: string, fieldId: string, value?: s
     initial_conversation: value,
   };
 
-  return buildInputBlock(title, element);
+  return buildInputBlock(title, element, hint);
 }
 
 function buildMultiConversationsSelectBlock(
@@ -278,6 +297,8 @@ function getFieldValueFromView<T = string>(fieldId: string, view: ViewOutput): T
       (view.state.values[key][fieldId].value ||
         view.state.values[key][fieldId].selected_user ||
         view.state.values[key][fieldId].selected_users ||
+        view.state.values[key][fieldId].selected_conversation ||
+        view.state.values[key][fieldId].selected_date_time ||
         view.state.values[key][fieldId].selected_date ||
         view.state.values[key][fieldId].selected_time ||
         view.state.values[key][fieldId].selected_option?.value);

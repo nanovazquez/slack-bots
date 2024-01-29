@@ -6,6 +6,7 @@ import {
   buildMultiConversationsSelectBlock,
   getFieldValueFromView,
   buildRadioButtonsBlock,
+  buildConversationsSelectBlock,
 } from "~/messageBlocksUtils";
 import type {
   SlackCommandListener,
@@ -48,33 +49,56 @@ const slashShortcutListener: SlackCommandListener = async ({
   const schedulerUserId = command.user_id;
   const messageToSchedule = command.text;
   const triggerId = command.trigger_id;
+  const metadata = JSON.stringify({ channelId: command.channel_id, hello: "world!" });
 
   // Open a modal
   await client.views.open({
     trigger_id: triggerId,
-    view: buildScheduleMessageModal(schedulerUserId, messageToSchedule),
+    view: buildScheduleMessageModal(schedulerUserId, messageToSchedule, metadata),
   });
 };
 
-function buildScheduleMessageModal(userId: string, messageToSchedule: string): View {
+function buildScheduleMessageModal(
+  userId: string,
+  messageToSchedule: string,
+  metadata: string,
+): View {
   return {
     type: "modal",
     callback_id: viewId,
+    private_metadata: metadata,
     title: { type: "plain_text", text: "Compose message" },
     submit: { type: "plain_text", text: "Schedule" },
     close: { type: "plain_text", text: "Cancel" },
     blocks: [
-      buildPlainTextInputBlock("Write your message", "message", true, messageToSchedule),
-      buildMultiConversationsSelectBlock("Conversation", "conversations", [userId]),
-      buildDatetimePickerBlock("Date", "date"),
-      buildRadioButtonsBlock("Repeat message", "repeat", [
-        { text: "Do not repeat", value: "never", selected: true },
-        { text: "Daily", value: "daily" },
-        { text: "Weekly", value: "weekly" },
-        { text: "Monthly", value: "monthly" },
-        { text: "Every weekday (Monday to Friday)", value: "weekday" },
-        // { text: "Custom", value: "custom" },
-      ]),
+      buildPlainTextInputBlock(
+        "Write your message",
+        "message",
+        true,
+        messageToSchedule,
+        "The message to be sent",
+      ),
+      buildConversationsSelectBlock(
+        "Conversation",
+        "conversation",
+        userId,
+        "A user, a DM group, or a channel to send the message to",
+      ),
+      //buildMultiConversationsSelectBlock("Conversation", "conversations", [userId]),
+      buildDatetimePickerBlock(
+        "Date",
+        "date",
+        undefined,
+        "The date and time the message is posted",
+      ),
+      // buildRadioButtonsBlock("Repeat message", "repeat", [
+      //   { text: "Do not repeat", value: "never", selected: true },
+      //   { text: "Daily", value: "daily" },
+      //   { text: "Weekly", value: "weekly" },
+      //   { text: "Monthly", value: "monthly" },
+      //   { text: "Every weekday (Monday to Friday)", value: "weekday" },
+      //   // { text: "Custom", value: "custom" },
+      // ]),
     ],
   };
 }
@@ -84,18 +108,24 @@ const viewListener: SlackViewListener = async ({ ack, body, client, view, contex
 
   const messageValues = {
     message: getFieldValueFromView("message", view),
-    conversations: getFieldValueFromView("conversations", view),
+    conversation: getFieldValueFromView("conversation", view),
     date: getFieldValueFromView("date", view),
     repeat: getFieldValueFromView("repeat", view),
   };
 
-  // Send a message to the user that the message is being scheduled
+  // Get metadata from the view (includes the channel id where the interaction to the user will be sent)
+  const metadata = JSON.parse(view.private_metadata);
 
-  console.log(messageValues);
+  // Send a message to the user that the message is being scheduled
+  const operationStatusMessage = await client.chat.postEphemeral({
+    text: `Scheduling your message...`,
+    channel: metadata.channelId,
+    user: body.user.id,
+  });
 
   // Schedule the message based on the values received
   const scheduledMessage = await client.chat.scheduleMessage({
-    channel: messageValues.conversations[0],
+    channel: messageValues.conversation,
     text: messageValues.message,
     post_at: messageValues.date,
     as_user: true,
@@ -106,10 +136,12 @@ const viewListener: SlackViewListener = async ({ ack, body, client, view, contex
   console.log(
     `Message for user ${body.user.name} was scheduled for ${scheduledMessage.post_at} with the id ${scheduledMessage.scheduled_message_id}`,
   );
-  await client.chat.postMessage({
-    channel: messageValues.conversations[0],
+
+  // Update epheremal message with the result of the schedule operation
+  await client.chat.update({
+    channel: metadata.channelId,
     text: `Your message was scheduled for ${scheduledMessage.post_at} with the id ${scheduledMessage.scheduled_message_id}`,
-    thread_ts: scheduledMessage.scheduled_message_id,
+    ts: operationStatusMessage.message_ts || "",
   });
 };
 
